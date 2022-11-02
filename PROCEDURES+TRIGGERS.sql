@@ -491,10 +491,6 @@ DELETE FROM dbo.Vendas
 
 GO 
 
-/*
-Demonstração de criação de INSTEAD OF TRIGGER
-*/
-
 CREATE VIEW dbo.VendasProdutoA 
 AS 
 SELECT V.Pedido AS "Código pedido", 
