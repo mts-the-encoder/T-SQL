@@ -1,28 +1,3 @@
---https://docs.microsoft.com/pt-br/sql/relational-databases/json/json-data-sql-server?view=sql-server-ver15
---https://docs.microsoft.com/pt-br/sql/t-sql/functions/json-functions-transact-sql?view=sql-server-ver15
-
-/*
- * Esta seção é apenas para criação das tabelas para este capítulo
- * É feito primeiro o DROP da(s) tabela(s) caso ela já exista
- * Após é feita a criação da tabela no contexto do capítulo
- * Por fim a população da tabela com o contexto do capítulo
- *
- * Recomenda-se executar esta parte inicial a cada capítulo
- */
-
- /*
- * Caso tenha eventuais problemas de conversão de datas, execute o seguinte comando:
- *
- * SET DATEFORMAT ymd
- *
- * No início de cada script estou incluindo este comando, caso você retome o exercício em outro dia,
- * é só executar este comando (1 vez apenas, pois é por sessão) antes de executar as queries
- */
-
--- ***************************************************************
--- ***************************************************************
--- ***************************************************************
--- ***************************************************************
 SET DATEFORMAT ymd
 
 IF EXISTS(SELECT * FROM sys.sequences WHERE name = 'SeqIdVendas')  
@@ -142,10 +117,6 @@ END
 
 GO 
 
-/*
-Tabela de domínio que representa os estados brasileiros
-*/
-
 CREATE TABLE dbo.Estado 
 (
 	Id TINYINT IDENTITY(1, 1) NOT NULL, 
@@ -157,11 +128,6 @@ INSERT INTO dbo.Estado (Descricao)
 VALUES ('São Paulo'), 
        ('Rio de Janeiro'), 
 	   ('Minas Gerais') 
-
-/*
-Tabela de domínio que representa as cidades brasileiras
-Utiliza-se o código da tabela de domínio de Estado para identificar à qual estado pertence cada cidade
-*/
 
 CREATE TABLE dbo.Cidade 
 (
@@ -182,12 +148,6 @@ VALUES (1, 'Santo André'),
 	   (3, 'Uberlândia'), 
 	   (3, 'Contagem'), 
 	   (3, 'Juiz de Fora') 
-
-/*
-Representação da tabela de cadastro de clientes
-Há vínculo do cliente com a tabela de domínio Cidade
-Como a tabela de domínio Cidade já possui vínculo com a tabela Estado, não é necessário criar vínculo forte entre a tabela CadastroCliente e a tabela Estado
-*/
 
 CREATE TABLE dbo.CadastroCliente 
 (
@@ -232,10 +192,6 @@ VALUES ('Cliente 1',  'Rua 1',  1, 'cliente_1@email.com',  '(11) 0000-0000', NUL
 	   ('Cliente 26', 'Rua 26', 9, 'cliente_26@email.com', '(31) 0000-0000', '(31) 1111-1111', '(31) 2222-2222'), 
 	   ('Cliente 27', 'Rua 27', 9, 'cliente_27@email.com', '(31) 0000-0000', '(31) 1111-1111', NULL) 
 
-/*
-Criação de uma tabela para cadastro simples de produtos
-*/
-
 CREATE TABLE dbo.Produto 
 (
 	Id SMALLINT IDENTITY(1, 1) NOT NULL, 
@@ -243,20 +199,12 @@ CREATE TABLE dbo.Produto
 	CONSTRAINT PK_Produto PRIMARY KEY (Id) 
 ) 
 
-/*
-Criação de um índice auxiliar, para filtragem à partir da coluna Descricao da tabela Produto
-*/
-
 CREATE NONCLUSTERED INDEX IDX_Produto_Descricao ON dbo.Produto (Descricao) 
 
 INSERT INTO dbo.Produto (Descricao) 
 VALUES ('Produto A'), 
        ('Produto B'), 
        ('Produto C')
-
-/*
-Criação de uma tabela de vendas que irá unir informações de clientes e produtos
-*/
 
 CREATE TABLE dbo.Vendas 
 (
@@ -274,16 +222,8 @@ CREATE TABLE dbo.Vendas
 	CONSTRAINT FK_Produto_Vendas FOREIGN KEY (Id_Produto) REFERENCES Produto (Id) 
 ) 
 
-/*
-Criação de um índice auxiliar, para uso no JOIN através das colunas Id_Cliente (com a tabela CadastroCliente) e Id_Produto (com a tabela Produto) 
-*/
-
 CREATE NONCLUSTERED INDEX IDX_Vendas_Id_Cliente ON dbo.Vendas (Id_Cliente) 
 CREATE NONCLUSTERED INDEX IDX_Vendas_Id_Produto ON dbo.Vendas (Id_Produto) 
-
-/*
-Criação de um índice auxiliar, para filtragem à partir da coluna DataVenda da tabela Vendas
-*/
 
 CREATE NONCLUSTERED INDEX IDX_Vendas_DataVenda ON dbo.Vendas("Data Venda") INCLUDE (Quantidade, "Valor Unitario") 
 GO 
@@ -361,17 +301,6 @@ GO
 EXEC dbo.PopularVendas 
 GO 
 
--- ***************************************************************
--- ***************************************************************
--- ***************************************************************
--- ***************************************************************
-
-/*
-Demonstração de query para transformar em JSON
-*/
-
---Uso do FOR JSON AUTO
-
 SELECT Venda.Pedido, 
        Cliente.Nome AS Cliente, 
 	   Produto.Descricao AS Produto, 
@@ -381,8 +310,6 @@ SELECT Venda.Pedido,
  INNER JOIN dbo.Produto         AS Produto ON (Venda.Id_Produto = Produto.Id) 
  WHERE Venda.[Data Venda] = CAST('2020-01-01' AS SMALLDATETIME) 
  FOR JSON AUTO; 
-
---Uso do FOR JSON PATH
  
 SELECT Venda.Pedido, 
        Cliente.Nome AS Cliente, 
@@ -393,8 +320,6 @@ SELECT Venda.Pedido,
  INNER JOIN dbo.Produto         AS Produto ON (Venda.Id_Produto = Produto.Id) 
  WHERE Venda.[Data Venda] = CAST('2020-01-01' AS SMALLDATETIME) 
  FOR JSON PATH; 
-
---Uso do FOR JSON PATH com item aninhado
 
 SELECT Venda.Pedido, 
 	   Venda.Id_Cliente								AS "Cliente.Código", 
@@ -410,8 +335,6 @@ SELECT Venda.Pedido,
  WHERE Venda.[Data Venda] = CAST('2020-01-01' AS SMALLDATETIME) 
  FOR JSON PATH; 
 
---Uso do FOR JSON PATH com item aninhado com vários atributos
-
 SELECT Cliente.Nome									AS "Cliente", 
 	   Produto.Descricao							AS "Produto", 
 	   Venda.Pedido									AS "Venda.Código do Pedido", 
@@ -425,8 +348,6 @@ SELECT Cliente.Nome									AS "Cliente",
  WHERE Venda.[Data Venda] = CAST('2020-01-01' AS SMALLDATETIME) 
  FOR JSON PATH; 
 
---Uso do FOR JSON PATH com item aninhado com mais níveis
-
 SELECT Cliente.Nome									AS "Cliente", 
 	   Produto.Descricao							AS "Produto", 
 	   Venda.Pedido									AS "Venda.Código do Pedido", 
@@ -439,8 +360,6 @@ SELECT Cliente.Nome									AS "Cliente",
  INNER JOIN dbo.Produto         AS Produto ON (Venda.Id_Produto = Produto.Id) 
  WHERE Venda.[Data Venda] = CAST('2020-01-01' AS SMALLDATETIME) 
  FOR JSON PATH; 
-
---Uso do FOR JSON PATH com inclusão de atributo root
 
 SELECT Cliente.Nome									AS "Cliente", 
 	   Produto.Descricao							AS "Produto", 
@@ -455,8 +374,6 @@ SELECT Cliente.Nome									AS "Cliente",
  WHERE Venda.[Data Venda] = CAST('2020-01-01' AS SMALLDATETIME) 
  FOR JSON PATH, ROOT('Data'); 
 
---Uso do FOR JSON PATH com a indicação de null nos atributos
-
 SELECT Produto.Id									AS "Id", 
 	   Produto.Descricao							AS "Produto", 
 	   Venda.Pedido									AS "Venda.Código do Pedido", 
@@ -469,8 +386,6 @@ SELECT Produto.Id									AS "Id",
  WHERE Produto.Id = 3 
  ORDER BY Produto.Id DESC 
  FOR JSON PATH, INCLUDE_NULL_VALUES; 
-
---Uso do FOR JSON PATH com a indicação de null nos atributos + atributo root
 
 SELECT Produto.Id									AS "Id", 
 	   Produto.Descricao							AS "Produto", 
@@ -485,8 +400,6 @@ SELECT Produto.Id									AS "Id",
  ORDER BY Produto.Id DESC 
  FOR JSON PATH, ROOT('Data'), INCLUDE_NULL_VALUES; 
 
---Uso do FOR JSON PATH com a remoção de chave de array
- 
 SELECT Cliente.Nome									AS "Cliente", 
 	   Produto.Descricao							AS "Produto", 
 	   Venda.Pedido									AS "Venda.Código do Pedido", 
@@ -499,8 +412,6 @@ SELECT Cliente.Nome									AS "Cliente",
  INNER JOIN dbo.Produto         AS Produto ON (Venda.Id_Produto = Produto.Id) 
  WHERE Venda.[Data Venda] = CAST('2020-01-01' AS SMALLDATETIME) 
  FOR JSON PATH, WITHOUT_ARRAY_WRAPPER; 
-
---Uso do FOR JSON PATH com a indicação de null nos atributos + remoção de chave de array
 
 SELECT Produto.Id									AS "Id", 
 	   Produto.Descricao							AS "Produto", 
@@ -515,8 +426,6 @@ SELECT Produto.Id									AS "Id",
  ORDER BY Produto.Id DESC 
  FOR JSON PATH, INCLUDE_NULL_VALUES, WITHOUT_ARRAY_WRAPPER; 
 
---ROOT e WITHOUT_ARRAY_WRAPPER não podem ser utilizados juntos!
-
 SELECT Cliente.Nome									AS "Cliente", 
 	   Produto.Descricao							AS "Produto", 
 	   Venda.Pedido									AS "Venda.Código do Pedido", 
@@ -529,12 +438,6 @@ SELECT Cliente.Nome									AS "Cliente",
  INNER JOIN dbo.Produto         AS Produto ON (Venda.Id_Produto = Produto.Id) 
  WHERE Venda.[Data Venda] = CAST('2020-01-01' AS SMALLDATETIME) 
  FOR JSON PATH, ROOT('Data'), WITHOUT_ARRAY_WRAPPER; 
-
-/*
-Demonstração de JSON para transformar em uma estrutura de tabela
-*/
-
---Estrutura simples com key, value e type
 
 DECLARE @JSON1 AS NVARCHAR(MAX) = N'
 {
@@ -550,8 +453,6 @@ DECLARE @JSON1 AS NVARCHAR(MAX) = N'
 
 SELECT * 
   FROM OPENJSON(@JSON1); 
-
---Estrutura simples com key, value e type com estrutura aninhada
 
 DECLARE @JSON2 AS NVARCHAR(MAX) = N'
 {
@@ -574,12 +475,8 @@ DECLARE @JSON2 AS NVARCHAR(MAX) = N'
 SELECT * 
   FROM OPENJSON(@JSON2); 
 
---Linhas que representam as várias chaves dos atributos na base da estrutura
-
 SELECT * 
   FROM OPENJSON(@JSON2, '$.Venda'); 
-
---Representação de "0" linhas quando a consulta é feita a um atributo não existente
 
 DECLARE @JSON3 AS NVARCHAR(MAX) = N'
 {
@@ -599,17 +496,11 @@ DECLARE @JSON3 AS NVARCHAR(MAX) = N'
 	}
 }';
 
---Com lax, apenas não retorna nenhuma linha
-
 SELECT * 
   FROM OPENJSON(@JSON3, 'lax $.Cliente'); 
 
---Com strict, uma mensagem de erro é exibida
-
 SELECT * 
   FROM OPENJSON(@JSON3, 'strict $.Cliente'); 
-
---Consulta "colunando" os atributos e fazendo o CAST para algumas tipagens
 
 DECLARE @JSON4 AS NVARCHAR(MAX) = N'
 {
@@ -641,8 +532,6 @@ WITH
 	DataVenda		DATETIME		'$.Venda.DataVenda' 
 ); 
 
---Consulta de valores com JSON_VALUE e de array com JSON_QUERY
-
 DECLARE @JSON5 AS NVARCHAR(MAX) = N'
 {
 	"Venda":{
@@ -670,8 +559,6 @@ SELECT JSON_VALUE(@JSON5, '$.Venda.Id') AS Id_Venda,
 	   JSON_VALUE(@JSON5, '$.Venda.ValorTotal') AS ValorTotal,
 	   JSON_QUERY(@JSON5, '$.Venda.Cliente.Cidade') AS Cidade; 
 
---DML direto no JSON
-
 DECLARE @JSON6 AS NVARCHAR(MAX) = N'
 {
 	"Venda":{
@@ -690,27 +577,19 @@ DECLARE @JSON6 AS NVARCHAR(MAX) = N'
 	}
 }';
 
---Atualização de valor numérico
 SET @JSON6 = JSON_MODIFY(@JSON6, '$.Venda.Quantidade', 20); 
 
---Atualização de valor string
 SET @JSON6 = JSON_MODIFY(@JSON6, '$.Venda.DataVenda', '2055-01-01'); 
 
---Remoção de atributo
 SET @JSON6 = JSON_MODIFY(@JSON6, '$.Venda.ValorUnitario', NULL); 
 
---Adição de atributo
 SET @JSON6 = JSON_MODIFY(@JSON6, '$.Venda.Cliente.Cidade', 'Santo André'); 
 
 PRINT @JSON6;
 
---Testando se o conteúdo é um JSON através da função ISJSON
-
 SELECT ISJSON ('str') AS s1, ISJSON ('') AS s2,
        ISJSON ('{}') AS s3, ISJSON ('{"a"}') AS s4,
        ISJSON ('{"a":1}') AS s5;
-
---Estrutura de JSON como array de itens
 
 DECLARE @JSON7 AS NVARCHAR(MAX) = N'
 {
